@@ -1,5 +1,11 @@
 use anchor_lang::prelude::*;
 
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Question too long, maximum 300 characters")]
+    QuestionTooLong,
+}
+
 declare_id!("4Y5yssNBE2pCiKtWYahKJ97LoXEo9gi7bbGRm635Mpj7");
 
 #[program]
@@ -11,7 +17,18 @@ pub mod simple_voting_solana {
         Ok(())
     }
 
-    pub fn create_poll(ctx: Context<CreatePoll>, poll_index: u64, question: String) -> Result<()> {}
+    pub fn create_poll(ctx: Context<CreatePoll>, question: String, poll_index: u64) -> Result<()> {
+        //Check question provided <= 300
+        require!(question.len() <= 300, ErrorCode::QuestionTooLong);
+        //Set all poll fields
+        ctx.accounts.poll.question = question;
+        ctx.accounts.poll.poll_index = poll_index;
+        ctx.accounts.poll.yes_votes = 0;
+        ctx.accounts.poll.no_votes = 0;
+        ctx.accounts.poll.creator = ctx.accounts.creator.key();
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
