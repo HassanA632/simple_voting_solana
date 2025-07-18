@@ -6,7 +6,7 @@ import { BN } from "@coral-xyz/anchor";
 // Test data (question for poll and poll index)
 const question = "Do you like cake?";
 // Using Big Number for u64 compatibility
-const pollID = new BN(122)
+const pollID = new BN(6)
 
 describe("poll program test", () => {
   it("Creates poll successfully", async () => {
@@ -22,7 +22,7 @@ describe("poll program test", () => {
 
 
 
-    // Generate the PDA (Program Derived Address) for poll
+    // Generat e the PDA (Program Derived Address) for poll
     // Seeds: "poll" + creator's pubkey + poll_index
     const [pollPDA, bump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -52,10 +52,10 @@ describe("poll program test", () => {
     const pollAccount = await program.account.poll.fetch(pollPDA);
 
     // Display poll data to confirm
-    console.log("> question: ", pollAccount.question);
     console.log("> Poll creator:", pollAccount.creator.toBase58());
-    console.log("> Yes:", pollAccount.yes_votes);
-    console.log("> No:", pollAccount.no_votes);
+    console.log("> question: ", pollAccount.question);
+    console.log("> Yes:", pollAccount.yesVotes);
+    console.log("> No:", pollAccount.yesVotes);
 
   });
 });
