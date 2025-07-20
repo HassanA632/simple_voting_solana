@@ -5,8 +5,11 @@ import { BN } from "@coral-xyz/anchor";
 
 // Test data (question for poll and poll index)
 const question = "Do you like cake?";
+
+// Create random number for test case
+const randomNum = Math.floor(Math.random() * 1000);
 // Using Big Number for u64 compatibility
-const pollID = new BN(6)
+const pollID = new BN(randomNum)
 
 describe("poll program test", () => {
   it("Creates poll successfully", async () => {
@@ -22,7 +25,7 @@ describe("poll program test", () => {
 
 
 
-    // Generat e the PDA (Program Derived Address) for poll
+    // Generate the PDA (Program Derived Address) for poll
     // Seeds: "poll" + creator's pubkey + poll_index
     const [pollPDA, bump] = anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -48,14 +51,22 @@ describe("poll program test", () => {
       })
       .rpc();
 
+    // Display poll data to confirm
 
+
+    await program.methods.voteForPoll(false).accounts({
+      poll: pollPDA,
+      voter: provider.wallet.publicKey,
+
+    })
     const pollAccount = await program.account.poll.fetch(pollPDA);
 
-    // Display poll data to confirm
     console.log("> Poll creator:", pollAccount.creator.toBase58());
     console.log("> question: ", pollAccount.question);
     console.log("> Yes:", pollAccount.yesVotes);
-    console.log("> No:", pollAccount.yesVotes);
+    console.log("> No:", pollAccount.noVotes);
+
+
 
   });
 });

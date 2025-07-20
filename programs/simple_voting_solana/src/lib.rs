@@ -18,8 +18,8 @@ pub mod simple_voting_solana {
         require!(question.len() <= 300, ErrorCode::QuestionTooLong);
         // Set all poll fields
         ctx.accounts.poll.question = question;
-        ctx.accounts.poll.yes_votes = 0;
-        ctx.accounts.poll.no_votes = 0;
+        ctx.accounts.poll.yes_votes = 5;
+        ctx.accounts.poll.no_votes = 5;
         ctx.accounts.poll.creator = ctx.accounts.creator.key();
         
 
@@ -27,11 +27,23 @@ pub mod simple_voting_solana {
 
         Ok(())
     }
+
+    pub fn vote_for_poll(ctx: Context<VoteForPoll>, vote_choice: bool)-> Result<()>{
+
+        let poll = &mut ctx.accounts.poll;
+        let voter = &mut ctx.accounts.voter;
+
+        if vote_choice{
+            poll.yes_votes +=1;
+        }else{
+            poll.no_votes +=1;
+        }
+
+        Ok(())
+
+         
+    }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
-
 
 
 #[derive(Accounts)]
@@ -55,6 +67,16 @@ pub struct CreatePoll<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct VoteForPoll<'info>{
+
+    #[account(mut)]
+    pub poll: Account<'info, Poll>,
+    pub voter: Signer<'info>,
+
+}
+
+
 //A poll account
 #[account]
 pub struct Poll {
@@ -65,9 +87,4 @@ pub struct Poll {
     pub creator: Pubkey,
 }
 
-// Vote account, to prove someone has voted on a specific poll
-#[account]
-pub struct Vote {
-    pub poll: Pubkey,  // Which poll
-    pub voter: Pubkey, // Pubkey of voter
-}
+
