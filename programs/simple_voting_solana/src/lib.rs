@@ -4,6 +4,8 @@ use anchor_lang::prelude::*;
 pub enum ErrorCode {
     #[msg("Question too long, maximum 300 characters")]
     QuestionTooLong,
+    #[msg("You cannot vote more than once")]
+    CannotVoteTwice,
 }
 
 declare_id!("4Y5yssNBE2pCiKtWYahKJ97LoXEo9gi7bbGRm635Mpj7");
@@ -18,9 +20,10 @@ pub mod simple_voting_solana {
         require!(question.len() <= 300, ErrorCode::QuestionTooLong);
         // Set all poll fields
         ctx.accounts.poll.question = question;
-        ctx.accounts.poll.yes_votes = 5;
-        ctx.accounts.poll.no_votes = 5;
-        ctx.accounts.poll.creator = ctx.accounts.creator.key();
+        ctx.accounts.poll.yes_votes = 0;
+        ctx.accounts.poll.no_votes = 0;
+        ctx.accounts.poll.creator = ctx.accounts.creator.key(); // Poll creator
+        ctx.accounts.poll.register = Vec::new(); // Hashset to store all voters (avoid double voting)
         
 
         msg!("Initialized poll with PDA: {}", ctx.accounts.poll.key());
@@ -29,18 +32,29 @@ pub mod simple_voting_solana {
     }
 
     pub fn vote_for_poll(ctx: Context<VoteForPoll>, vote_choice: bool)-> Result<()>{
+        
 
         let poll = &mut ctx.accounts.poll;
-        let voter = &mut ctx.accounts.voter;
+        let voter = &mut ctx.accounts.voter.key();
+
+        // If Pubkey already within register vector, return error code
+        // Further looking into this, this is an inefficient way to store
+        // the public keys of all those who have voted. Solution pending.
+        if poll.register.contains(&voter){
+            return err!(ErrorCode::CannotVoteTwice);
+        }
+
+        // Push voters Pubkey to register vector
+        poll.register.push(*voter);
 
         if vote_choice{
             poll.yes_votes +=1;
         }else{
             poll.no_votes +=1;
         }
+        msg!("Vote executed");
 
         Ok(())
-
          
     }
 }
@@ -72,8 +86,7 @@ pub struct VoteForPoll<'info>{
 
     #[account(mut)]
     pub poll: Account<'info, Poll>,
-    pub voter: Signer<'info>,
-
+    pub voter: Signer<'info>, 
 }
 
 
@@ -85,6 +98,7 @@ pub struct Poll {
     pub no_votes: u64,
     pub poll_index: u64,
     pub creator: Pubkey,
+    pub register: Vec<Pubkey>, // contains Pubkey of those who have voted
 }
 
 

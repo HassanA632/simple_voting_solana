@@ -23,8 +23,6 @@ describe("poll program test", () => {
 
 
 
-
-
     // Generate the PDA (Program Derived Address) for poll
     // Seeds: "poll" + creator's pubkey + poll_index
     const [pollPDA, bump] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -51,14 +49,20 @@ describe("poll program test", () => {
       })
       .rpc();
 
-    // Display poll data to confirm
-
-
-    await program.methods.voteForPoll(false).accounts({
+    // Call vote_for_poll instruction
+    await program.methods.voteForPoll(true).accounts({
       poll: pollPDA,
       voter: provider.wallet.publicKey,
 
-    })
+    }).rpc();
+
+    await program.methods.voteForPoll(true).accounts({
+      poll: pollPDA,
+      voter: provider.wallet.publicKey,
+
+    }).rpc();
+
+
     const pollAccount = await program.account.poll.fetch(pollPDA);
 
     console.log("> Poll creator:", pollAccount.creator.toBase58());
