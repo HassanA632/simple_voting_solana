@@ -10,6 +10,8 @@ const question = "Do you like cake?";
 const randomNum = Math.floor(Math.random() * 1000);
 // Using Big Number for u64 compatibility
 const pollID = new BN(randomNum)
+// Vote threshold, stops voting once met.
+const voteThreshold = new BN(3);
 
 describe("poll program test", () => {
   it("Creates poll successfully", async () => {
@@ -41,7 +43,7 @@ describe("poll program test", () => {
     // Call create_poll instruction
     // Initialize new poll account at PDA address
     await program.methods
-      .createPoll(question, pollID)
+      .createPoll(question, pollID, voteThreshold)
       .accounts({
         poll: pollPDA,
         creator: creatorPublicKey,
@@ -55,7 +57,6 @@ describe("poll program test", () => {
       voter: provider.wallet.publicKey,
 
     }).rpc();
-
     await program.methods.voteForPoll(true).accounts({
       poll: pollPDA,
       voter: provider.wallet.publicKey,

@@ -6,7 +6,10 @@ pub enum ErrorCode {
     QuestionTooLong,
     #[msg("You cannot vote more than once")]
     CannotVoteTwice,
+    #[msg("Max amount of votes reached")]
+    VoteThreshold,
 }
+
 
 declare_id!("4Y5yssNBE2pCiKtWYahKJ97LoXEo9gi7bbGRm635Mpj7");
 
@@ -14,7 +17,7 @@ declare_id!("4Y5yssNBE2pCiKtWYahKJ97LoXEo9gi7bbGRm635Mpj7");
 pub mod simple_voting_solana {
     use super::*;
 
-    pub fn create_poll(ctx: Context<CreatePoll>, question: String, poll_index: u64) -> Result<()> {
+    pub fn create_poll(ctx: Context<CreatePoll>, question: String, poll_index: u64, poll_threshold: u64) -> Result<()> {
    
         // Check question provided <= 300
         require!(question.len() <= 300, ErrorCode::QuestionTooLong);
@@ -24,6 +27,7 @@ pub mod simple_voting_solana {
         ctx.accounts.poll.no_votes = 0;
         ctx.accounts.poll.creator = ctx.accounts.creator.key(); // Poll creator
         ctx.accounts.poll.register = Vec::new(); // Hashset to store all voters (avoid double voting)
+        ctx.accounts.poll.poll_threshold = poll_threshold;
         
 
         msg!("Initialized poll with PDA: {}", ctx.accounts.poll.key());
@@ -44,6 +48,13 @@ pub mod simple_voting_solana {
             return err!(ErrorCode::CannotVoteTwice);
         }
 
+        // Threshold set at poll creation. If votes (yes+no) goes over our threshold
+        // dont process vote.
+        if poll.poll_threshold != 0 && poll.yes_votes + poll.no_votes >= poll.poll_threshold{
+            return err!(ErrorCode::VoteThreshold)
+            
+        }
+
         // Push voters Pubkey to register vector
         poll.register.push(*voter);
 
@@ -61,7 +72,7 @@ pub mod simple_voting_solana {
 
 
 #[derive(Accounts)]
-#[instruction(question: String, poll_index: u64)]
+#[instruction(question: String, poll_index: u64, poll_threshold: u64)]
 pub struct CreatePoll<'info> {
     #[account(
         init,
@@ -99,6 +110,7 @@ pub struct Poll {
     pub poll_index: u64,
     pub creator: Pubkey,
     pub register: Vec<Pubkey>, // contains Pubkey of those who have voted
+    pub poll_threshold: u64,
 }
 
 
