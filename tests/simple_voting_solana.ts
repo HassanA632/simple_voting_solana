@@ -8,10 +8,16 @@ const question = "Do you like cake?";
 
 // Create random number for test case
 const randomNum = Math.floor(Math.random() * 1000);
+
 // Using Big Number for u64 compatibility
 const pollID = new BN(randomNum)
+
 // Vote threshold, stops voting once met.
 const voteThreshold = new BN(3);
+
+// Time in UNIX when the poll expires
+const pollExpireTime = new BN(1753299200);
+
 
 describe("poll program test", () => {
   it("Creates poll successfully", async () => {
@@ -43,7 +49,7 @@ describe("poll program test", () => {
     // Call create_poll instruction
     // Initialize new poll account at PDA address
     await program.methods
-      .createPoll(question, pollID, voteThreshold)
+      .createPoll(question, pollID, voteThreshold, pollExpireTime)
       .accounts({
         poll: pollPDA,
         creator: creatorPublicKey,
@@ -57,12 +63,6 @@ describe("poll program test", () => {
       voter: provider.wallet.publicKey,
 
     }).rpc();
-    await program.methods.voteForPoll(true).accounts({
-      poll: pollPDA,
-      voter: provider.wallet.publicKey,
-
-    }).rpc();
-
 
     const pollAccount = await program.account.poll.fetch(pollPDA);
 

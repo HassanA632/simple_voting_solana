@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::sysvar::clock::Clock;
 
 #[error_code]
 pub enum ErrorCode {
@@ -8,6 +9,10 @@ pub enum ErrorCode {
     CannotVoteTwice,
     #[msg("Max amount of votes reached")]
     VoteThreshold,
+    #[msg("Poll deadline time invalid. Must be further than the current time and valid UNIX")]
+    InvalidExpiryTime,
+    #[msg("The poll you are trying to vote on has expired")]
+    PollExpired,
 }
 
 
@@ -17,7 +22,13 @@ declare_id!("4Y5yssNBE2pCiKtWYahKJ97LoXEo9gi7bbGRm635Mpj7");
 pub mod simple_voting_solana {
     use super::*;
 
-    pub fn create_poll(ctx: Context<CreatePoll>, question: String, poll_index: u64, poll_threshold: u64) -> Result<()> {
+    pub fn create_poll(ctx: Context<CreatePoll>, question: String, poll_index: u64, poll_threshold: u64, expiry_time: i64) -> Result<()> {
+
+        // Get current time (UNIX)
+        let current_time = Clock::get()?.unix_timestamp;
+
+        // Check time provided is a time after current time
+        require!(expiry_time > current_time, ErrorCode::InvalidExpiryTime);
    
         // Check question provided <= 300
         require!(question.len() <= 300, ErrorCode::QuestionTooLong);
@@ -26,8 +37,10 @@ pub mod simple_voting_solana {
         ctx.accounts.poll.yes_votes = 0;
         ctx.accounts.poll.no_votes = 0;
         ctx.accounts.poll.creator = ctx.accounts.creator.key(); // Poll creator
-        ctx.accounts.poll.register = Vec::new(); // Hashset to store all voters (avoid double voting)
+        ctx.accounts.poll.register = Vec::new(); // Hashset to store all voters (avoid d  ouble voting)
         ctx.accounts.poll.poll_threshold = poll_threshold;
+        ctx.accounts.poll.created_time = current_time;
+        ctx.accounts.poll.expiry_time = expiry_time;
         
 
         msg!("Initialized poll with PDA: {}", ctx.accounts.poll.key());
@@ -40,6 +53,13 @@ pub mod simple_voting_solana {
 
         let poll = &mut ctx.accounts.poll;
         let voter = &mut ctx.accounts.voter.key();
+        // Get current time (UNIX)
+        let current_time = Clock::get()?.unix_timestamp;
+
+        //if poll has expired, return error
+        if current_time > poll.expiry_time{
+            return err!(ErrorCode::PollExpired)
+        }
 
         // If Pubkey already within register vector, return error code
         // Further looking into this, this is an inefficient way to store
@@ -50,6 +70,7 @@ pub mod simple_voting_solana {
 
         // Threshold set at poll creation. If votes (yes+no) goes over our threshold
         // dont process vote.
+        // If set to 0, no limit.
         if poll.poll_threshold != 0 && poll.yes_votes + poll.no_votes >= poll.poll_threshold{
             return err!(ErrorCode::VoteThreshold)
             
@@ -72,7 +93,7 @@ pub mod simple_voting_solana {
 
 
 #[derive(Accounts)]
-#[instruction(question: String, poll_index: u64, poll_threshold: u64)]
+#[instruction(question: String, poll_index: u64, poll_threshold: u64, expiry_time: i64)]
 pub struct CreatePoll<'info> {
     #[account(
         init,
@@ -111,6 +132,8 @@ pub struct Poll {
     pub creator: Pubkey,
     pub register: Vec<Pubkey>, // contains Pubkey of those who have voted
     pub poll_threshold: u64,
+    pub created_time: i64,
+    pub expiry_time: i64,
 }
 
 
