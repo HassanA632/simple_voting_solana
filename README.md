@@ -1,11 +1,11 @@
-# Simple Voting System In Solana (Learning)
+# Simple Voting System In Solana 
 
-I plan on creating an on chain voting system using Rust and utilizing the Anchor framework. The system will (hopefully) allow users to create polls, and vote securely with votes being tracked on chain.
+A cool little early project in Solana!
+I have created an on chain voting system using Rust and utilizes the Anchor framework. The system allows users to create polls, and vote securely with votes being tracked on chain.
 
-## Features (planned)
+## Features 
 - Create polls with custom options
-- Vote on polls (one vote per wallet)
+- Vote on polls (one vote per wallet restriction)
 - View live results
-- Close polls once finished
+- Close polls once time limit specified has been reached
 
-Once I have the core stuff down, I plan to add a nice little front-end too. :)
